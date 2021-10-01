@@ -2,6 +2,20 @@ import glob
 import os
 import numpy as np
 import cv2
+import argparse
+
+
+parser = argparse.ArgumentParser(description='Preprocessing/Visualizing EGTEA Gaze+ gaze annotations')
+
+
+parser.add_argument('--txtfile', default='./gaze_data', help='path to txt annotations')
+parser.add_argument('--datapath', default='dataset', help='path to dataset', required=True)
+parser.add_argument('--outputpath', default='output', help='path to output dir', required=True)
+parser.add_argument('--p', action='store_false', help='to save data as numpy files')
+parser.add_argument('--v', action='store_true', help='to visualize gaze data')
+
+
+
 
 def _str2frame(frame_str, fps=None):
     if fps==None:
@@ -122,11 +136,48 @@ def parse_gtea_gaze(filename, gaze_resolution=None):
 
 
 
-def draw_gaze(gaze_data, dir_path):
+# def draw_gaze(gaze_data, dir_path):
+#
+#
+#     all_jpg_files = []
+#     for root, dirs, files in os.walk(dir_path):
+#             for file in files:
+#                 if file.endswith(".jpg"):
+#                     all_jpg_files.append(os.path.join(root, file))
+#
+#
+#     for jpg in all_jpg_files:
+#         parent_dir = jpg.split("/")[-2]
+#         img_idx = int(jpg.split("/")[-1].split(".")[0]) - 1
+#         start_frame_num = int(parent_dir.split("-")[-2][1:])
+#         #end_frame_num = int(parent_dir.split("-")[-1][1:])
+#
+#
+#
+#         img = cv2.imread(jpg)
+#
+#         h,w,_ = img.shape
+#
+#
+#
+#         px = int(gaze_data[start_frame_num + img_idx][0] * img.shape[1])
+#         py = int(gaze_data[start_frame_num + img_idx][1] * img.shape[0])
+#
+#         if int(gaze_data[start_frame_num + img_idx, 2]) == 1:
+#             img = cv2.circle(img, (px, py), radius=10, color=(0, 0, 255), thickness=-1)
+#
+#         dst_path = jpg.replace("./", "./gaze_vis/")
+#         dst_path = dst_path.replace(".jpg", ".npy")
+#         dst_dir = "/".join(dst_path.split("/")[0:-1])
+#         if os.path.exists(dst_dir) == False:
+#             os.makedirs(dst_dir)
+#         cv2.imwrite(dst_path, img)
+
+def draw_gaze(gaze_data, org_dir_path, dst_dir_path):
 
 
     all_jpg_files = []
-    for root, dirs, files in os.walk(dir_path):
+    for root, dirs, files in os.walk(org_dir_path):
             for file in files:
                 if file.endswith(".jpg"):
                     all_jpg_files.append(os.path.join(root, file))
@@ -149,22 +200,24 @@ def draw_gaze(gaze_data, dir_path):
         px = int(gaze_data[start_frame_num + img_idx][0] * img.shape[1])
         py = int(gaze_data[start_frame_num + img_idx][1] * img.shape[0])
 
-        if int(test_data_02[start_frame_num + img_idx, 2]) == 1:
+        if int(gaze_data[start_frame_num + img_idx, 2]) == 1:
             img = cv2.circle(img, (px, py), radius=10, color=(0, 0, 255), thickness=-1)
 
-        dst_path = jpg.replace("./", "./gaze_vis/")
-        dst_path = dst_path.replace(".jpg", ".npy")
+        dst_path = os.path.join(dst_dir_path, *jpg.split("/")[-2:])
+        #dst_path = dst_path.replace(".jpg", ".npy")
+        #dst_path = jpg.replace("./", "./gaze_vis/")
+        #dst_path = dst_path.replace(".jpg", ".npy")
         dst_dir = "/".join(dst_path.split("/")[0:-1])
         if os.path.exists(dst_dir) == False:
             os.makedirs(dst_dir)
+
         cv2.imwrite(dst_path, img)
 
-
-def save_gaze(gaze_data, dir_path):
+def save_gaze(gaze_data, org_dir_path, dst_dir_path):
 
 
     all_jpg_files = []
-    for root, dirs, files in os.walk(dir_path):
+    for root, dirs, files in os.walk(org_dir_path):
             for file in files:
                 if file.endswith(".jpg"):
                     all_jpg_files.append(os.path.join(root, file))
@@ -188,11 +241,13 @@ def save_gaze(gaze_data, dir_path):
         px = int(gaze_data[start_frame_num + img_idx][0] * img.shape[1])
         py = int(gaze_data[start_frame_num + img_idx][1] * img.shape[0])
 
-        if int(test_data_02[start_frame_num + img_idx, 2]) == 1:
+        if int(gaze_data[start_frame_num + img_idx, 2]) == 1:
             pmap[py][px] = 1
 
-        dst_path = jpg.replace("./", "./gaze_vis/")
+        dst_path = os.path.join(dst_dir_path, *jpg.split("/")[-2:])
         dst_path = dst_path.replace(".jpg", ".npy")
+        #dst_path = jpg.replace("./", "./gaze_vis/")
+        #dst_path = dst_path.replace(".jpg", ".npy")
         dst_dir = "/".join(dst_path.split("/")[0:-1])
         if os.path.exists(dst_dir) == False:
             os.makedirs(dst_dir)
@@ -205,7 +260,26 @@ def save_gaze(gaze_data, dir_path):
 
 
 if __name__== "__main__":
-    draw_gaze(test_data_01, "./OP01-R01-PastaSalad")
+    args = parser.parse_args()
+
+    all_txt_files = []
+    for root, dirs, files in os.walk(args.txtfile):
+        for file in files:
+            if file.endswith(".txt"):
+                all_txt_files.append(os.path.join(root, file))
+
+
+    for txt in all_txt_files:
+        print(txt)
+        gaze_data = parse_gtea_gaze(txt)
+        org_dir_path = txt.split("/")[-1].split(".")[0]
+        dst_dir_path = os.path.join(args.outputpath, org_dir_path)
+        org_dir_path = os.path.join(args.datapath, org_dir_path)
+
+        if args.v:
+            draw_gaze(gaze_data, org_dir_path, dst_dir_path)
+        elif args.p:
+            save_gaze(gaze_data, org_dir_path, dst_dir_path)
 
 
 
