@@ -136,42 +136,6 @@ def parse_gtea_gaze(filename, gaze_resolution=None):
 
 
 
-# def draw_gaze(gaze_data, dir_path):
-#
-#
-#     all_jpg_files = []
-#     for root, dirs, files in os.walk(dir_path):
-#             for file in files:
-#                 if file.endswith(".jpg"):
-#                     all_jpg_files.append(os.path.join(root, file))
-#
-#
-#     for jpg in all_jpg_files:
-#         parent_dir = jpg.split("/")[-2]
-#         img_idx = int(jpg.split("/")[-1].split(".")[0]) - 1
-#         start_frame_num = int(parent_dir.split("-")[-2][1:])
-#         #end_frame_num = int(parent_dir.split("-")[-1][1:])
-#
-#
-#
-#         img = cv2.imread(jpg)
-#
-#         h,w,_ = img.shape
-#
-#
-#
-#         px = int(gaze_data[start_frame_num + img_idx][0] * img.shape[1])
-#         py = int(gaze_data[start_frame_num + img_idx][1] * img.shape[0])
-#
-#         if int(gaze_data[start_frame_num + img_idx, 2]) == 1:
-#             img = cv2.circle(img, (px, py), radius=10, color=(0, 0, 255), thickness=-1)
-#
-#         dst_path = jpg.replace("./", "./gaze_vis/")
-#         dst_path = dst_path.replace(".jpg", ".npy")
-#         dst_dir = "/".join(dst_path.split("/")[0:-1])
-#         if os.path.exists(dst_dir) == False:
-#             os.makedirs(dst_dir)
-#         cv2.imwrite(dst_path, img)
 
 def draw_gaze(gaze_data, org_dir_path, dst_dir_path):
 
@@ -229,14 +193,35 @@ def save_gaze(gaze_data, org_dir_path, dst_dir_path):
         start_frame_num = int(parent_dir.split("-")[-2][1:])
         #end_frame_num = int(parent_dir.split("-")[-1][1:])
 
+        dst_path = os.path.join(dst_dir_path, *jpg.split("/")[-2:])
+        dst_path = dst_path.replace(".jpg", ".npy")
 
+        if os.path.exists(dst_path):
+            continue
 
+        #dst_path = jpg.replace("./", "./gaze_vis/")
+        #dst_path = dst_path.replace(".jpg", ".npy")
+        dst_dir = "/".join(dst_path.split("/")[0:-1])
+
+        
         img = cv2.imread(jpg)
 
         h,w,_ = img.shape
+        pmap = np.zeros((h,w), dtype=np.uint8)
 
 
-        pmap = np.zeros((h,w))
+
+        if os.path.exists(dst_dir) == False:
+            os.makedirs(dst_dir)
+
+
+        
+
+
+
+        if start_frame_num + img_idx >= len(gaze_data):
+            np.save(dst_path,pmap)
+            continue
 
         px = int(gaze_data[start_frame_num + img_idx][0] * img.shape[1])
         py = int(gaze_data[start_frame_num + img_idx][1] * img.shape[0])
@@ -244,13 +229,7 @@ def save_gaze(gaze_data, org_dir_path, dst_dir_path):
         if int(gaze_data[start_frame_num + img_idx, 2]) == 1:
             pmap[py][px] = 1
 
-        dst_path = os.path.join(dst_dir_path, *jpg.split("/")[-2:])
-        dst_path = dst_path.replace(".jpg", ".npy")
-        #dst_path = jpg.replace("./", "./gaze_vis/")
-        #dst_path = dst_path.replace(".jpg", ".npy")
-        dst_dir = "/".join(dst_path.split("/")[0:-1])
-        if os.path.exists(dst_dir) == False:
-            os.makedirs(dst_dir)
+        
         np.save(dst_path,pmap)
 
 
